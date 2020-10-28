@@ -1,0 +1,239 @@
+
+import numpy as np
+import skfuzzy as fuzz
+import matplotlib.pyplot as plt
+
+# Generate universe variables
+#   * Speed,distance and angle on subjective ranges [0, 10], where 1=10.e,g speed=5 means speed is 50 km/hr.
+#   * New speed has a range of [0, 120]km/hr and steering angle has a range of 0 to 90 degree.
+x_speed = np.arange(0, 11, 1)
+x_distance = np.arange(0, 11, 1)
+x_angle= np.arange(0, 11, 1)
+x_newspeed= np.arange(0, 121, 20)
+x_steering=np.arange(0, 91, 15)
+
+# Generate fuzzy membership functions
+speed_lo = fuzz.trimf(x_speed, [0, 0, 5])
+speed_md = fuzz.trimf(x_speed, [0, 5, 10])
+speed_hi = fuzz.trimf(x_speed, [5, 10, 10])
+distance_lo = fuzz.trimf(x_distance, [0, 0, 5])
+distance_md = fuzz.trimf(x_distance, [0, 5, 10])
+distance_hi = fuzz.trimf(x_distance, [5, 10, 10])
+angle_lo = fuzz.trimf(x_angle, [0, 0, 5])
+angle_md = fuzz.trimf(x_angle, [0, 5, 10])
+angle_hi = fuzz.trimf(x_angle, [5, 10, 10])
+newspeed_lo = fuzz.trimf(x_newspeed, [0, 0, 60])
+newspeed_md = fuzz.trimf(x_newspeed, [0, 60, 120])
+newspeed_hi = fuzz.trimf(x_newspeed, [60, 120, 120])
+steering_lo = fuzz.trimf(x_steering, [0, 0, 45])
+steering_md = fuzz.trimf(x_steering, [0, 45, 90])
+steering_hi = fuzz.trimf(x_steering, [45, 90, 90])
+
+# Visualize these universes and membership functions
+fig, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(nrows=5, figsize=(8, 9))
+
+ax0.plot(x_speed, speed_lo, 'b', linewidth=1.5, label='Low')
+ax0.plot(x_speed, speed_md, 'g', linewidth=1.5, label='Medium')
+ax0.plot(x_speed, speed_hi, 'r', linewidth=1.5, label='High')
+ax0.set_title('SPEED')
+ax0.legend()
+
+ax1.plot(x_distance, distance_lo, 'b', linewidth=1.5, label='Far')
+ax1.plot(x_distance, distance_md, 'g', linewidth=1.5, label='Acceptable')
+ax1.plot(x_distance, distance_hi, 'r', linewidth=1.5, label='Less')
+ax1.set_title('DISTANCE FROM VEHICLE')
+ax1.legend()
+
+ax2.plot(x_angle, angle_lo, 'b', linewidth=1.5, label='Low')
+ax2.plot(x_angle, angle_md, 'g', linewidth=1.5, label='Medium')
+ax2.plot(x_angle, angle_hi, 'r', linewidth=1.5, label='High')
+ax2.set_title('ANGLE FROM THIS VEHICLE')
+ax2.legend()
+
+ax3.plot(x_newspeed, newspeed_lo, 'b', linewidth=1.5, label='Low')
+ax3.plot(x_newspeed, newspeed_md, 'g', linewidth=1.5, label='Medium')
+ax3.plot(x_newspeed, newspeed_hi, 'r', linewidth=1.5, label='High')
+ax3.set_title('NEW SPEED')
+ax3.legend()
+
+ax4.plot(x_steering, steering_lo, 'b', linewidth=1.5, label='Far')
+ax4.plot(x_steering, steering_md, 'g', linewidth=1.5, label='Acceptable')
+ax4.plot(x_steering, steering_hi, 'r', linewidth=1.5, label='Less')
+ax4.set_title('ANGLE OF STEERING')
+ax4.legend()
+
+# Turn off top/right axes
+for ax in (ax0, ax1, ax2, ax3, ax4):
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+
+plt.tight_layout()
+
+"""
+.. image:: PLOT2RST.current_figure
+
+Fuzzy rules
+-----------
+
+Now, to make these triangles useful, we define the *fuzzy relationship*
+between input and output variables. For the purposes of our example, consider
+three simple rules:
+
+1. If the speed is more OR the distance is low , then the new speed,steering will be low
+2. If the speed is medium, then the new speed,steering will be medium
+3. If the speed is low  OR the distnace is high, then the new speed,steering will be high.
+
+
+
+Rule application
+----------------
+
+What would the speed and steering be in the following circumstance:
+
+* speed was 10 or 100km/hr
+* distance was 3 0r 30 metres
+* angle was 40 degree
+
+"""
+
+# We need the activation of our fuzzy membership functions at these values.
+# This is what fuzz.interp_membership exists for!
+speed_level_lo = fuzz.interp_membership(x_speed, speed_lo, 10)
+speed_level_md = fuzz.interp_membership(x_speed, speed_md, 10)
+speed_level_hi = fuzz.interp_membership(x_speed, speed_hi, 10)
+
+distance_level_lo = fuzz.interp_membership(x_distance, distance_lo, 3)
+distamce_level_md = fuzz.interp_membership(x_distance, distance_md, 3)
+distance_level_hi = fuzz.interp_membership(x_distance, distance_hi, 3)
+
+angle_level_lo = fuzz.interp_membership(x_angle, angle_lo, 4)
+angle_level_md = fuzz.interp_membership(x_angle, angle_md, 4)
+angle_level_hi = fuzz.interp_membership(x_angle, angle_hi, 4)
+
+active_rule1 = np.fmax(speed_level_lo, distance_level_lo,  )
+
+
+newspeed_activation_hi = np.fmin(active_rule1, newspeed_hi)  
+
+newspeed_activation_md = np.fmin(speed_level_md, newspeed_md)
+
+
+active_rule3 = np.fmax(speed_level_hi, distance_level_hi)
+newspeed_activation_lo = np.fmin(active_rule3, newspeed_lo)
+newspeed0 = np.zeros_like(x_newspeed)
+
+steering_activation_lo = np.fmin(active_rule1, steering_lo)  
+
+steering_activation_md = np.fmin(angle_level_md, steering_md)
+
+active_rule3 = np.fmax(angle_level_hi, speed_level_hi)
+steering_activation_hi = np.fmin(active_rule3, steering_hi)
+steering0 = np.zeros_like(x_steering)
+
+fig, ax0 = plt.subplots(figsize=(8, 3))
+
+ax0.fill_between(x_newspeed, newspeed0, newspeed_activation_lo, facecolor='b', alpha=0.7)
+ax0.plot(x_newspeed, newspeed_lo, 'b', linewidth=0.5, linestyle='--', )
+ax0.fill_between(x_newspeed, newspeed0, newspeed_activation_md, facecolor='g', alpha=0.7)
+ax0.plot(x_newspeed, newspeed_md, 'g', linewidth=0.5, linestyle='--')
+ax0.fill_between(x_newspeed, newspeed0, newspeed_activation_hi, facecolor='r', alpha=0.7)
+ax0.plot(x_newspeed, newspeed_hi, 'r', linewidth=0.5, linestyle='--')
+ax0.set_title('Output membership activity')
+
+
+for ax in (ax0,):
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+
+plt.tight_layout()
+
+
+
+fig, ax0 = plt.subplots(figsize=(8, 3))
+
+ax0.fill_between(x_steering, steering0, steering_activation_lo, facecolor='b', alpha=0.7)
+ax0.plot(x_steering, steering_lo, 'b', linewidth=0.5, linestyle='--', )
+ax0.fill_between(x_steering, steering0, steering_activation_md, facecolor='g', alpha=0.7)
+ax0.plot(x_steering, steering_md, 'g', linewidth=0.5, linestyle='--')
+ax0.fill_between(x_steering, steering0, steering_activation_hi, facecolor='r', alpha=0.7)
+ax0.plot(x_steering, steering_hi, 'r', linewidth=0.5, linestyle='--')
+ax0.set_title('Output membership activity')
+
+
+for ax in (ax0,):
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+
+plt.tight_layout()
+
+"""
+.. image:: PLOT2RST.current_figure
+
+
+Defuzzification
+---------------
+Finally, to get a real world answer, we return to *crisp* logic from the
+world of fuzzy membership functions. For the purposes of this example
+the centroid method will be used.
+
+
+"""
+
+aggregated = np.fmax(newspeed_activation_lo,
+                     np.fmax(newspeed_activation_md, newspeed_activation_hi))
+
+aggregated = np.fmax(steering_activation_lo,
+                     np.fmax(steering_activation_md, steering_activation_hi))
+
+
+newspeed = fuzz.defuzz(x_newspeed, aggregated, 'centroid')
+newspeed_activation = fuzz.interp_membership(x_newspeed, aggregated, newspeed)  
+
+steering = fuzz.defuzz(x_steering, aggregated, 'centroid')
+steering_activation = fuzz.interp_membership(x_steering, aggregated, steering)  
+
+
+
+
+fig, ax0 = plt.subplots(figsize=(8, 3))
+
+ax0.plot(x_newspeed, newspeed_lo, 'b', linewidth=0.5, linestyle='--', )
+ax0.plot(x_newspeed, newspeed_md, 'g', linewidth=0.5, linestyle='--')
+ax0.plot(x_newspeed, newspeed_hi, 'r', linewidth=0.5, linestyle='--')
+ax0.fill_between(x_newspeed, newspeed0, aggregated, facecolor='Orange', alpha=0.7)
+ax0.plot([newspeed, newspeed], [0, newspeed_activation], 'k', linewidth=1.5, alpha=0.9)
+ax0.set_title('Aggregated membership and result (line)')
+
+
+for ax in (ax0,):
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+
+plt.tight_layout()
+
+
+fig, ax0 = plt.subplots(figsize=(8, 3))
+
+ax0.plot(x_steering, steering_lo, 'b', linewidth=0.5, linestyle='--', )
+ax0.plot(x_steering, steering_md, 'g', linewidth=0.5, linestyle='--')
+ax0.plot(x_steering, steering_hi, 'r', linewidth=0.5, linestyle='--')
+ax0.fill_between(x_steering, steering0, aggregated, facecolor='Orange', alpha=0.7)
+ax0.plot([steering, steering], [0, steering_activation], 'k', linewidth=1.5, alpha=0.9)
+ax0.set_title('Aggregated membership and result (line)')
+
+
+for ax in (ax0,):
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+
+plt.tight_layout()
